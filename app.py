@@ -1,4 +1,4 @@
-from bottle import *
+from bottle import Bottle,static_file,template,route,request,get,run
 import os
 from zipfile import ZipFile
 
@@ -8,39 +8,45 @@ def extrf(fname):
     with ZipFile(f"./upload/{fname}",'r') as zifi:
         zifi.extractall(path="./templates/3dv")
     
+app = Bottle(__name__)
 
-
-
-@route('/')
+@app.route('/')
 def root():
     return static_file('index.html', root='templates/site')
 
 
-
-@route('/upload', method='POST')
+@app.route('/upload', method='POST')
 def do_upload():
     f = request.files.get('upload')
     f.save(os.path.join(UPLOAD_FOLDER,f.filename))
     extrf(f.filename)
     os.remove(f"./upload/{f.filename}")
-    return static_file('index.html', root='templates/site')
+    return static_file('index2.html', root='templates/site')
 
 
 
-@get("/<filepath:re:.*\.js>")
-def js(filepath):
-    return static_file(filepath, root=f"templates/3dv/{name}")
+
+@app.get("/<filepath:re:.*\.(jpeg|png|gif|ico|svg|swf|jpg|cur)>")
+@app.get("/<filepath:re:.*\.js>")
+def staticf(filepath):
+    response = static_file(filepath, root=f"templates/3dv/{name}")
+    response.set_header("Cache-Control", "private, no-cache, no-store,")
+    return response
 
 
-@get("/<filepath:re:.*\.(jpeg|png|gif|ico|svg)>")
-def img(filepath):
-    return static_file(filepath, root=f"templates/3dv/{name}")
+# @app.get("/<filepath:re:.*\.(jpeg|png|gif|ico|svg)>")
+# def img(filepath):
+#     return static_file(filepath, root=f"templates/3dv/{name}")
 
-@route('/<n>')
+@app.route('/<n>')
 def index(n):
     global name
     name = n
-    return template(f'templates/3dv/{n}/index.htm')
+    # return template(f'templates/3dv/{n}/index.htm')
+    response = static_file('index.htm', root=f"templates/3dv/{name}")
+    response.set_header("Cache-Control", "private, no-cache, no-store,")
+    return response
 
 
-run(host='localhost', port=8080,debug=True)
+
+run(app=app,host='0.0.0.0', port=80, debug=True)
